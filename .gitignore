@@ -23,5 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 
-# API Keys
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# API Keys (legacy local file)
 api/Gemini.js
+api/gemini.js

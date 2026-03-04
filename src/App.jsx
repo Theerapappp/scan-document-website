@@ -3,7 +3,6 @@ import {
   UploadCloud, Crop, CheckCircle, Loader2, FileText,
   AlertCircle, Download, Copy, RefreshCw, PlusCircle, Trash2
 } from 'lucide-react';
-import apiKey from '../api/Gemini.js';
 
 export default function App() {
   // สถานะของแอปพลิเคชัน
@@ -144,73 +143,27 @@ export default function App() {
   };
 
   const callGeminiAPI = async (base64Image) => {
-    const prompt = `
-      You are an expert OCR and document analysis AI.
-      Analyze the provided document image carefully.
-      
-      Tasks:
-      1. Perform Optical Character Recognition (OCR) to extract all visible text. Fully support and accurately transcribe the text exactly as it appears, whether it is in Thai (ภาษาไทย), English, or any other language present.
-      2. Identify the logical sections or sections within the document based on its internal structure, visual formatting, and actual headings present in the image.
-      3. Categorize the extracted text under these sections. CRITICAL INSTRUCTION: The "heading" for each section MUST be the exact text used as a header/title in the document itself, in the exact original language (e.g. if the document uses a Thai header "รายละเอียดสินค้า", use exactly that instead of "Item Details" or a generic category). If no explicit header exists for a section, deduce a highly accurate and concise descriptive title in the primary language of that section.
-      4. Organize the text clearly under these headings.
-      
-      Output your response STRICTLY as a JSON object with this exact schema:
-      {
-        "document_type": "A brief string describing what kind of document this is in the primary language of the document (e.g., ใบเสร็จรับเงิน, Invoice, Letter)",
-        "sections": [
-          {
-            "heading": "The exact heading text from the document (in its original language)",
-            "content": "The extracted text belonging to this category. Preserve newlines where appropriate."
-          }
-        ]
-      }
-      Do not include any markdown formatting wrappers (like \`\`\`json) around the output. Just return the raw JSON string.
-    `;
-
-    const payload = {
-      contents: [{
-        parts: [
-          { text: prompt },
-          { inlineData: { mimeType: "image/jpeg", data: base64Image } }
-        ]
-      }],
-      generationConfig: {
-        responseMimeType: "application/json"
-      }
-    };
-
-    let retries = 5;
+    let retries = 3;
     let delay = 1000;
 
     while (retries > 0) {
       try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          }
-        );
-
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.error?.message || `HTTP Error: ${response.status}`);
-        }
+        const response = await fetch('/api/gemini-proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            base64Image,
+            mimeType: 'image/jpeg'
+          })
+        });
 
         const data = await response.json();
-        const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-        if (!textResponse) throw new Error("Empty response from AI model.");
-
-        try {
-          // ตัดส่วน markdown ออก
-          const cleanJson = textResponse.replace(/^```json\n?/i, '').replace(/\n?```$/i, '').trim();
-          return JSON.parse(cleanJson);
-        } catch (jsonError) {
-          console.error("JSON Parsing failed. Raw response:", textResponse);
-          throw new Error("Failed to parse the structured data from the AI.");
+        if (!response.ok) {
+          throw new Error(data.error || `HTTP Error: ${response.status}`);
         }
+
+        return data;
 
       } catch (err) {
         retries--;
