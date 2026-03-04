@@ -3,8 +3,7 @@ import {
   UploadCloud, Crop, CheckCircle, Loader2, FileText,
   AlertCircle, Download, Copy, RefreshCw, PlusCircle, Trash2
 } from 'lucide-react';
-
-const apiKey = "AIzaSyC2pm3fXg1DeWYmHy_0Xs2sDdzRS4tvBZY"; // ใส่ API Key ของตัวเอง
+import apiKey from '../api/Gemini.js';
 
 export default function App() {
   // สถานะของแอปพลิเคชัน
